@@ -3,16 +3,17 @@ package main
 import (
 	"fmt"
 	"log"
-	"mix/adapters"
-	"mix/core"
 	"os"
 	"time"
 
+	"mix/adapters"
+	"mix/entities"
+	"mix/usecases"
+
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"gorm.io/driver/postgres"
 )
 
 const (
@@ -23,15 +24,7 @@ const (
 	password = "mypassword"
 )
 
-// 	"mix/core"
-
-// 	"github.com/gofiber/fiber/v2"
-// 	"gorm.io/driver/sqlite"
-// 	"gorm.io/gorm"
-
 func main() {
-	app := fiber.New()
-	// fmt.Println("Hello, playground")
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, username, password, database)
@@ -50,13 +43,12 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
+	db.AutoMigrate(&entities.Order{})
 	orderRepo := adapters.NewGormOrderRepository(db)
-	orderService := core.NewOrderService(orderRepo)
+	orderService := usecases.NewOrderService(orderRepo)
 	orderHandler := adapters.NewHttpOrderHandler(orderService)
-
+	app := fiber.New()
 	app.Post("/order", orderHandler.CreateOrder)
 
-	db.AutoMigrate(&core.Order{})
-
-	app.Listen(":3000")
+	app.Listen(":8000")
 }
