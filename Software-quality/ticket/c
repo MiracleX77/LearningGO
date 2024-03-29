@@ -1,0 +1,8 @@
+mode: set
+github.com/phatchara_mix/softq/ticket/ticket.go:3.29,4.14 1 1
+github.com/phatchara_mix/softq/ticket/ticket.go:4.14,6.3 1 1
+github.com/phatchara_mix/softq/ticket/ticket.go:6.8,6.22 1 1
+github.com/phatchara_mix/softq/ticket/ticket.go:6.22,8.3 1 1
+github.com/phatchara_mix/softq/ticket/ticket.go:8.8,8.22 1 1
+github.com/phatchara_mix/softq/ticket/ticket.go:8.22,10.3 1 0
+github.com/phatchara_mix/softq/ticket/ticket.go:10.8,12.3 1 1

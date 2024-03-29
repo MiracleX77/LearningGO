@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v4"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -18,30 +16,9 @@ const (
 	host     = "localhost"
 	port     = 5432
 	database = "mydatabase"
-	username = "myuser"
-	password = "mypassword"
+	username = "admin"
+	password = "1234"
 )
-
-func authRequired(c *fiber.Ctx) error {
-	cookie := c.Cookies("jwt")
-	secretKey := "secret"
-	if cookie == "" {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-	token, err := jwt.ParseWithClaims(cookie, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secretKey), nil
-	})
-	if err != nil {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-	if !token.Valid {
-		return c.SendStatus(fiber.StatusUnauthorized)
-	}
-
-	claim := token.Claims.(jwt.MapClaims)
-	fmt.Println(claim["user_id"])
-	return c.Next()
-}
 
 func main() {
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -68,72 +45,54 @@ func main() {
 
 	fmt.Println("Connection Opened to Database")
 
-	db.AutoMigrate(&Book{}, &User{})
+	db.AutoMigrate(&Book{}, &Publisher{}, &Author{}, &AuthorBook{})
+	publisher := Publisher{
+		Details: "Publisher Details",
+		Name:    "Publisher Name",
+	}
+	_ = createPublisher(db, &publisher)
+
+	// Example data for a new author
+	author := Author{
+		Name: "Author Name",
+	}
+	_ = createAuthor(db, &author)
+
+	// // Example data for a new book with an author
+	book := Book{
+		Name:        "Book Title",
+		Author:      "Book Author",
+		Description: "Book Description",
+		PublisherID: publisher.ID,     // Use the ID of the publisher created above
+		Authors:     []Author{author}, // Add the created author
+	}
+	_ = createBookWithAuthor(db, &book, []uint{author.ID})
+
+	// ขาเรียก
+
+	// Example: Get a book with its publisher
+	bookWithPublisher, err := getBookWithPublisher(db, 1) // assuming a book with ID 1
+	if err != nil {
+		// Handle error
+	}
+
+	// Example: Get a book with its authors
+	bookWithAuthors, err := getBookWithAuthors(db, 1) // assuming a book with ID 1
+	if err != nil {
+		// Handle error
+	}
+
+	// Example: List books of a specific author
+	authorBooks, err := listBooksOfAuthor(db, 1) // assuming an author with ID 1
+	if err != nil {
+		// Handle error
+	}
+
+	fmt.Println(bookWithPublisher)
+	fmt.Println(bookWithAuthors)
+	fmt.Println(authorBooks)
 
 	app := fiber.New()
-
-	app.Use("/books", authRequired)
-
-	app.Get("/books/:id", func(c *fiber.Ctx) error {
-		id, err := strconv.Atoi(c.Params("id"))
-		if err != nil {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-		books := getBook(db, uint(id))
-		return c.JSON(books)
-	})
-	app.Post("/register", func(c *fiber.Ctx) error {
-		if !c.Is("json") {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		if c.Body() == nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		user := new(User)
-		if err := c.BodyParser(user); err != nil {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-		if user.Email == "" || user.Password == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("Email or Password is missing")
-		}
-
-		err = createUser(db, user)
-		if err != nil {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-
-		return c.SendStatus(fiber.StatusCreated)
-	})
-
-	app.Post("/login", func(c *fiber.Ctx) error {
-		if !c.Is("json") {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		if c.Body() == nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Bad Request")
-		}
-		user := new(User)
-		if err := c.BodyParser(user); err != nil {
-			return c.SendStatus(fiber.StatusBadRequest)
-		}
-		if user.Email == "" || user.Password == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("Email or Password is missing")
-		}
-
-		token, err := loginUser(db, user)
-		if err != nil {
-			return c.SendStatus(fiber.StatusUnauthorized)
-		}
-		c.Cookie(&fiber.Cookie{
-			Name:     "jwt",
-			Value:    token,
-			Expires:  time.Now().Add(time.Hour * 72),
-			HTTPOnly: true,
-		})
-		return c.JSON(fiber.Map{
-			"Message": "Login Successful",
-		})
-	})
 
 	app.Listen(":8080")
 }
