@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
-
+  
+permissions:
+  contents: read
+  packages: write
 jobs:
   # ==============
   # CI task
@@ -60,7 +63,7 @@ jobs:
         with:
           context: .
           tags: |
-            ghcr.io/aorjoa-training/devops-go-example:${{ env.GITHUB_SHA }}
+            ghcr.io/miraclex77/devops-go-example:${{ env.GITHUB_SHA }}
           # build on feature branches, push only on main branch
           push: ${{ github.ref == 'refs/heads/main' }}
 
@@ -76,7 +79,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
         with:
-          repository: aorjoa-training/devops-argocd
+          repository: miraclex77/devops-argocd
           persist-credentials: false
           fetch-depth: 0
       - name: change image tag
@@ -84,12 +87,12 @@ jobs:
           git --version
           git config user.name "aorjoa"
           git config user.email "root@aorjoa.link"
-          sed -i -E "s/ghcr.io\/aorjoa-training\/devops-go-example.*$/ghcr.io\/aorjoa-training\/devops-go-example:${GITHUB_SHA}/" kube-gitops/deployment.yml
+          sed -i -E "s/ghcr.io\/miraclex77\/devops-go-example.*$/ghcr.io\/miraclex77\/devops-go-example:${GITHUB_SHA}/" kube-gitops/deployment.yml
           git add kube-gitops/deployment.yml
           git commit -m "🤖 change docker image version to ${GITHUB_SHA}"
       - name: push changes
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.PAT }}
-          repository: aorjoa-training/devops-argocd
+          repository: miraclex77/devops-argocd
           branch: main
